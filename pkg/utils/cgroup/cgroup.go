@@ -61,6 +61,18 @@ func (cgroupName CgroupName) ToSystemd() string {
 	return result
 }
 
+func (cgroupName CgroupName) ToContainerdSystemd() string {
+	if len(cgroupName) == 0 || (len(cgroupName) == 1 && cgroupName[0] == "") {
+		return "/"
+	}
+	newparts := []string{}
+	for _, part := range cgroupName {
+		part = escapeSystemdCgroupName(part)
+		newparts = append(newparts, part)
+	}
+	return strings.Join(newparts, "-") + systemdSuffix
+}
+
 func escapeSystemdCgroupName(part string) string {
 	return strings.Replace(part, "-", "_", -1)
 }

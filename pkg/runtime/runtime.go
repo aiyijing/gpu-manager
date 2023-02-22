@@ -143,6 +143,7 @@ func readProcsFile(file string) ([]int, error) {
 	return pids, nil
 }
 
+// TODO: use cgroup v2 API
 func (m *containerRuntimeManager) getCgroupName(pod *v1.Pod, containerID string) (string, error) {
 	podQos := pod.Status.QOSClass
 	if len(podQos) == 0 {
@@ -164,6 +165,11 @@ func (m *containerRuntimeManager) getCgroupName(pod *v1.Pod, containerID string)
 
 	switch m.cgroupDriver {
 	case "systemd":
+		// With cgroup v2 containerd and systemd fs: cgroup path like
+		// sys/fs/cgroup/blkio/system.slice/containerd.service/kubepods-pod1c39b8ac_9484_4228_8747_6cc573bf8fe8.slice:cri-containerd:1bf93a75376d1eb89bc4c635eacc86a1ab133996442da7601b6ba814ebcff028
+		if m.runtimeName == "containerd" {
+			return fmt.Sprintf("system.slice/containerd.service/%s:%s:%s", cgroupName.ToContainerdSystemd(), cgroup.SystemdPathPrefixOfRuntime(m.runtimeName), containerID), nil
+		}
 		return fmt.Sprintf("%s/%s-%s.scope", cgroupName.ToSystemd(), cgroup.SystemdPathPrefixOfRuntime(m.runtimeName), containerID), nil
 	case "cgroupfs":
 		return fmt.Sprintf("%s/%s", cgroupName.ToCgroupfs(), containerID), nil
